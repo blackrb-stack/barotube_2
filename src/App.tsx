@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useRef } from "react";
 import {
   Search,
   Play,
@@ -8,28 +8,31 @@ import {
   Bell,
   User,
   ExternalLink,
-  CheckCircle2,
-  Loader2,
-  RefreshCw,
-  AlertCircle,
+  TrendingUp,
+  Music,
+  Gamepad2,
+  Newspaper,
+  Film,
+  Radio,
+  UtensilsCrossed,
+  Trophy,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  getTrending,
-  getTrendingByCategory,
-  searchVideos,
-  CATEGORIES,
-  type VideoItem,
-  formatViews,
-  formatDuration,
-  extractVideoId,
-} from "./api/youtube";
 
-// ==================== 타입 ====================
-type Tab = "home" | "player";
+// ==================== 카테고리 ====================
+const CATEGORIES = [
+  { name: '트렌딩', id: 'trending', icon: TrendingUp, url: 'https://www.youtube.com/feed/trending' },
+  { name: '음악', id: 'music', icon: Music, url: 'https://www.youtube.com/channel/UC-9-kyTW8ZkZNDHQJ6F' },
+  { name: '게임', id: 'gaming', icon: Gamepad2, url: 'https://www.youtube.com/gaming' },
+  { name: '뉴스', id: 'news', icon: Newspaper, url: 'https://www.youtube.com/news' },
+  { name: '영화', id: 'movies', icon: Film, url: 'https://www.youtube.com/movies' },
+  { name: '라이브', id: 'live', icon: Radio, url: 'https://www.youtube.com/live' },
+  { name: '요리', id: 'cooking', icon: UtensilsCrossed, url: 'https://www.youtube.com/results?search_query=cooking' },
+  { name: '스포츠', id: 'sports', icon: Trophy, url: 'https://www.youtube.com/sports' },
+];
 
 // ==================== 유틸 ====================
-function extractVideoIdFromInput(input: string): string | null {
+function extractVideoId(input: string): string | null {
   const trimmed = input.trim();
   if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
   const patterns = [
@@ -47,69 +50,38 @@ function extractVideoIdFromInput(input: string): string | null {
 
 // ==================== 메인 앱 ====================
 export default function App() {
-  const [tab, setTab] = useState<Tab>("home");
-  const [videos, setVideos] = useState<VideoItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeSearch, setActiveSearch] = useState("");
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
-  const [region, setRegion] = useState("KR");
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  // 피드 로드
-  const loadFeed = useCallback(async () => {
-    setLoading(true);
-    setError("");
-
-    try {
-      let results: VideoItem[];
-
-      if (activeSearch) {
-        results = await searchVideos(activeSearch, region);
-      } else {
-        results = await getTrendingByCategory(selectedCategory, region);
-      }
-
-      setVideos(results);
-    } catch (err) {
-      setError("영상을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedCategory, activeSearch, region]);
-
-  useEffect(() => {
-    loadFeed();
-  }, [loadFeed]);
-
-  // 검색 실행
-  const handleSearch = () => {
-    if (!searchQuery.trim()) return;
-    setActiveSearch(searchQuery.trim());
-    setSelectedCategory("all");
-  };
-
-  // 카테고리 변경
-  const handleCategoryChange = (catId: string) => {
-    setSelectedCategory(catId);
-    setActiveSearch("");
-    setSearchQuery("");
-  };
+  const [error, setError] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // 영상 재생
   const handlePlayVideo = (videoId: string) => {
     setPlayingVideoId(videoId);
-    setTab("player");
+    setError("");
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // 검색 실행
+  const handleSearch = () => {
+    const query = searchQuery.trim();
+    if (!query) return;
+
+    // URL인 경우
+    const videoId = extractVideoId(query);
+    if (videoId) {
+      handlePlayVideo(videoId);
+      setSearchQuery("");
+      return;
+    }
+
+    // 일반 검색어인 경우 YouTube로 이동
+    window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`, '_blank');
   };
 
   // 뒤로가기
   const handleBack = () => {
     setPlayingVideoId(null);
-    setTab("home");
   };
 
   return (
@@ -126,9 +98,7 @@ export default function App() {
               className="flex items-center gap-1 cursor-pointer"
               onClick={() => {
                 handleBack();
-                setActiveSearch("");
                 setSearchQuery("");
-                setSelectedCategory("all");
               }}
             >
               <div className="bg-red-600 rounded-lg p-1">
@@ -145,12 +115,15 @@ export default function App() {
             <div className="flex">
               <div className="flex-1 relative">
                 <input
-                  ref={searchInputRef}
+                  ref={inputRef}
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setError("");
+                  }}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  placeholder="검색"
+                  placeholder="YouTube URL 또는 검색어 입력..."
                   className="w-full px-4 py-2 bg-[#121212] border border-white/20 rounded-l-full text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 text-sm"
                 />
               </div>
@@ -178,264 +151,186 @@ export default function App() {
       {/* ===== 카테고리 칩 ===== */}
       <div className="fixed top-14 left-0 right-0 z-40 bg-[#0f0f0f] border-b border-white/10">
         <div className="flex items-center gap-2 px-4 py-3 overflow-x-auto scrollbar-hide">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => handleCategoryChange(cat.id)}
-              className={`px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-colors ${
-                selectedCategory === cat.id && !activeSearch
-                  ? "bg-white text-black font-medium"
-                  : "bg-[#272727] text-white hover:bg-[#3a3a3a]"
-              }`}
-            >
-              {cat.name}
-            </button>
-          ))}
+          {CATEGORIES.map((cat) => {
+            const Icon = cat.icon;
+            return (
+              <a
+                key={cat.id}
+                href={cat.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm whitespace-nowrap bg-[#272727] text-white hover:bg-[#3a3a3a] transition-colors"
+              >
+                <Icon className="w-4 h-4" />
+                {cat.name}
+              </a>
+            );
+          })}
         </div>
       </div>
 
       {/* ===== 메인 콘텐츠 ===== */}
-      <main className="pt-28 pb-8">
+      <main className="pt-28 pb-8 px-4">
         <AnimatePresence mode="wait">
-          {tab === "home" ? (
-            <motion.div
-              key="home"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="px-4"
-            >
-              {/* 검색 결과 헤더 */}
-              {activeSearch && (
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-medium">
-                    "{activeSearch}" 검색 결과
-                  </h2>
-                  <button
-                    onClick={() => {
-                      setActiveSearch("");
-                      setSearchQuery("");
-                    }}
-                    className="text-sm text-blue-400 hover:text-blue-300"
-                  >
-                    전체 보기
-                  </button>
-                </div>
-              )}
-
-              {/* 로딩 */}
-              {loading && (
-                <div className="flex flex-col items-center justify-center py-20">
-                  <Loader2 className="w-8 h-8 animate-spin text-red-500 mb-4" />
-                  <p className="text-gray-400">영상을 불러오는 중...</p>
-                </div>
-              )}
-
-              {/* 에러 */}
-              {error && !loading && (
-                <div className="flex flex-col items-center justify-center py-20">
-                  <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-                  <p className="text-gray-400 mb-4">{error}</p>
-                  <button
-                    onClick={loadFeed}
-                    className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    다시 시도
-                  </button>
-                </div>
-              )}
-
-              {/* 비디오 그리드 */}
-              {!loading && !error && videos.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-20">
-                  <Youtube className="w-12 h-12 text-gray-600 mb-4" />
-                  <p className="text-gray-400">표시할 영상이 없습니다</p>
-                </div>
-              )}
-
-              {!loading && !error && videos.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {videos.map((video, idx) => (
-                    <VideoCard
-                      key={video.url + idx}
-                      video={video}
-                      onPlay={() =>
-                        handlePlayVideo(extractVideoId(video.url))
-                      }
-                      index={idx}
-                    />
-                  ))}
-                </div>
-              )}
-            </motion.div>
-          ) : (
+          {playingVideoId ? (
+            /* ===== 플레이어 뷰 ===== */
             <motion.div
               key="player"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="px-4"
+              className="max-w-5xl mx-auto"
             >
-              {playingVideoId && (
-                <PlayerView
-                  videoId={playingVideoId}
-                  onBack={handleBack}
-                  onPlayVideo={handlePlayVideo}
-                />
-              )}
+              {/* 뒤로가기 */}
+              <button
+                onClick={handleBack}
+                className="flex items-center gap-2 mb-4 text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+                <span>돌아가기</span>
+              </button>
+
+              {/* 플레이어 - youtube-nocookie.com 사용 */}
+              <div className="relative w-full rounded-2xl overflow-hidden bg-black shadow-2xl mb-4">
+                <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+                  <iframe
+                    src={`https://www.youtube-nocookie.com/embed/${playingVideoId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3`}
+                    className="absolute inset-0 w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title="BaroTube Player"
+                  />
+                </div>
+              </div>
+
+              {/* 영상 정보 */}
+              <div className="flex items-center justify-between">
+                <code className="text-sm bg-white/10 px-3 py-1.5 rounded-lg font-mono">
+                  {playingVideoId}
+                </code>
+                <a
+                  href={`https://youtube.com/watch?v=${playingVideoId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/5 hover:bg-white/10 text-sm transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span className="hidden sm:inline">YouTube에서 열기</span>
+                </a>
+              </div>
+            </motion.div>
+          ) : (
+            /* ===== 홈 뷰 ===== */
+            <motion.div
+              key="home"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="max-w-4xl mx-auto"
+            >
+              {/* 환영 메시지 */}
+              <div className="text-center py-12">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-red-600/10 rounded-full mb-4">
+                  <Youtube className="w-10 h-10 text-red-500" />
+                </div>
+                <h2 className="text-3xl font-bold mb-2">BaroTube에 오신 것을 환영합니다</h2>
+                <p className="text-gray-400 mb-8">
+                  YouTube URL을 입력하면 광고 없이 영상을 시청할 수 있습니다
+                </p>
+
+                {/* 빠른 입력 */}
+                <div className="max-w-2xl mx-auto">
+                  <div className="flex gap-2">
+                    <div className="flex-1 relative">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          setError("");
+                        }}
+                        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                        placeholder="YouTube URL 또는 Video ID를 입력하세요..."
+                        className="w-full pl-12 pr-4 py-4 bg-[#1a1a1a] border border-white/10 rounded-full text-white placeholder-gray-500 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all"
+                      />
+                    </div>
+                    <button
+                      onClick={handleSearch}
+                      className="px-8 py-4 bg-red-600 hover:bg-red-700 rounded-full font-medium transition-colors flex items-center gap-2"
+                    >
+                      <Play className="w-5 h-5 fill-white" />
+                      <span>재생</span>
+                    </button>
+                  </div>
+
+                  {error && (
+                    <p className="text-red-400 text-sm mt-3">{error}</p>
+                  )}
+
+                  {/* 예시 */}
+                  <div className="flex flex-wrap justify-center gap-2 mt-4">
+                    <span className="text-xs text-gray-500">예시:</span>
+                    <button
+                      onClick={() => {
+                        setSearchQuery("dQw4w9WgXcQ");
+                        inputRef.current?.focus();
+                      }}
+                      className="text-xs px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                    >
+                      dQw4w9WgXcQ
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSearchQuery("https://youtu.be/jNQOjAfhHSY");
+                        inputRef.current?.focus();
+                      }}
+                      className="text-xs px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                    >
+                      youtu.be/jNQOjAfhHSY
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 카테고리 카드 */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-12">
+                {CATEGORIES.map((cat) => {
+                  const Icon = cat.icon;
+                  return (
+                    <a
+                      key={cat.id}
+                      href={cat.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group flex flex-col items-center gap-3 p-6 bg-[#1a1a1a] hover:bg-[#272727] rounded-xl transition-colors"
+                    >
+                      <div className="w-12 h-12 bg-red-600/10 group-hover:bg-red-600/20 rounded-full flex items-center justify-center transition-colors">
+                        <Icon className="w-6 h-6 text-red-500" />
+                      </div>
+                      <span className="font-medium">{cat.name}</span>
+                    </a>
+                  );
+                })}
+              </div>
+
+              {/* 안내 */}
+              <div className="mt-12 p-6 bg-[#1a1a1a] rounded-xl">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <Youtube className="w-5 h-5 text-red-500" />
+                  사용 방법
+                </h3>
+                <ul className="space-y-2 text-sm text-gray-400">
+                  <li>• YouTube 영상 URL을 입력하면 광고 없이 재생됩니다</li>
+                  <li>• Video ID (11자리)를 직접 입력할 수도 있습니다</li>
+                  <li>• 검색어를 입력하면 YouTube에서 검색합니다</li>
+                  <li>• 카테고리 버튼을 클릭하면 YouTube의 해당 페이지로 이동합니다</li>
+                </ul>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </main>
-    </div>
-  );
-}
-
-// ==================== 비디오 카드 ====================
-function VideoCard({
-  video,
-  onPlay,
-  index,
-}: {
-  video: VideoItem;
-  onPlay: () => void;
-  index: number;
-}) {
-  const [imgLoaded, setImgLoaded] = useState(false);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index * 0.03, 0.5) }}
-      className="cursor-pointer group"
-      onClick={onPlay}
-    >
-      {/* 썸네일 */}
-      <div className="relative aspect-video rounded-xl overflow-hidden bg-[#1a1a1a] mb-3">
-        {!imgLoaded && (
-          <div className="absolute inset-0 bg-[#1a1a1a] animate-pulse" />
-        )}
-        <img
-          src={video.thumbnail}
-          alt={video.title}
-          loading="lazy"
-          onLoad={() => setImgLoaded(true)}
-          className={`w-full h-full object-cover transition-all duration-300 group-hover:scale-105 ${
-            imgLoaded ? "opacity-100" : "opacity-0"
-          }`}
-        />
-
-        {/* 재생 오버레이 */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-          <div className="w-12 h-12 bg-black/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <Play className="w-5 h-5 fill-white" />
-          </div>
-        </div>
-
-        {/* 영상 길이 */}
-        {video.duration > 0 && (
-          <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/80 rounded text-xs font-medium">
-            {formatDuration(video.duration)}
-          </div>
-        )}
-      </div>
-
-      {/* 정보 */}
-      <div className="flex gap-3">
-        {/* 채널 아바타 */}
-        <div className="shrink-0">
-          {video.uploaderAvatar ? (
-            <img
-              src={video.uploaderAvatar}
-              alt=""
-              className="w-9 h-9 rounded-full bg-[#272727]"
-            />
-          ) : (
-            <div className="w-9 h-9 rounded-full bg-[#272727] flex items-center justify-center">
-              <User className="w-4 h-4 text-gray-500" />
-            </div>
-          )}
-        </div>
-
-        {/* 텍스트 */}
-        <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium leading-5 line-clamp-2 mb-1 group-hover:text-white text-gray-200">
-            {video.title}
-          </h3>
-          <div className="flex items-center gap-1 text-xs text-gray-400">
-            <span className="hover:text-gray-300 truncate">
-              {video.uploaderName}
-            </span>
-            {video.uploaderVerified && (
-              <CheckCircle2 className="w-3 h-3 text-gray-400 shrink-0" />
-            )}
-          </div>
-          <div className="text-xs text-gray-400 mt-0.5">
-            {video.views > 0 && (
-              <>
-                <span>조회수 {formatViews(video.views)}회</span>
-                <span className="mx-1">•</span>
-              </>
-            )}
-            <span>{video.uploadedDate}</span>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-// ==================== 플레이어 뷰 ====================
-function PlayerView({
-  videoId,
-  onBack,
-  onPlayVideo,
-}: {
-  videoId: string;
-  onBack: () => void;
-  onPlayVideo: (id: string) => void;
-}) {
-  return (
-    <div className="max-w-5xl mx-auto">
-      {/* 뒤로가기 */}
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 mb-4 text-gray-400 hover:text-white transition-colors"
-      >
-        <X className="w-5 h-5" />
-        <span>돌아가기</span>
-      </button>
-
-      {/* 플레이어 - youtube-nocookie.com 사용으로 광고 감소 */}
-      <div className="relative w-full rounded-2xl overflow-hidden bg-black shadow-2xl mb-4">
-        <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
-          <iframe
-            src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=1`}
-            className="absolute inset-0 w-full h-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            title="BaroTube Player"
-          />
-        </div>
-      </div>
-
-      {/* 영상 정보 */}
-      <div className="flex items-center justify-between mb-6">
-        <code className="text-sm bg-white/10 px-3 py-1.5 rounded-lg font-mono">
-          {videoId}
-        </code>
-        <a
-          href={`https://youtube.com/watch?v=${videoId}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/5 hover:bg-white/10 text-sm transition-colors"
-        >
-          <ExternalLink className="w-4 h-4" />
-          <span className="hidden sm:inline">YouTube에서 열기</span>
-        </a>
-      </div>
     </div>
   );
 }
