@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import {
   Search,
   Play,
@@ -16,8 +16,10 @@ import {
   Radio,
   UtensilsCrossed,
   Trophy,
+  RefreshCw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { usePullToRefresh } from "./usePullToRefresh";
 
 // ==================== 카테고리 ====================
 const CATEGORIES = [
@@ -54,6 +56,13 @@ export default function App() {
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // 당겨서 새로고침 (홈 화면에서만, 앱을 다시 불러옴)
+  const reloadApp = useCallback(async () => {
+    window.location.reload();
+    await new Promise(() => {}); // 새로고침될 때까지 표시 유지
+  }, []);
+  const { pull, refreshing, threshold } = usePullToRefresh(reloadApp, !playingVideoId);
 
   // 영상 재생
   const handlePlayVideo = (videoId: string) => {
@@ -168,6 +177,21 @@ export default function App() {
           })}
         </div>
       </div>
+
+      {/* ===== 당겨서 새로고침 표시 ===== */}
+      {(pull > 0 || refreshing) && (
+        <div
+          className="fixed left-0 right-0 z-40 flex justify-center pointer-events-none"
+          style={{ top: 112 + pull - 44 }}
+        >
+          <div className="w-10 h-10 rounded-full bg-[#272727] shadow-lg flex items-center justify-center">
+            <RefreshCw
+              className={`w-5 h-5 ${pull >= threshold || refreshing ? "text-red-500" : "text-white/60"} ${refreshing ? "animate-spin" : ""}`}
+              style={refreshing ? undefined : { transform: `rotate(${pull * 3}deg)` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* ===== 메인 콘텐츠 ===== */}
       <main className="pt-28 pb-8 px-4">
