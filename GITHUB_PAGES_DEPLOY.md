@@ -1,111 +1,224 @@
-# 🚀 GitHub Pages 배포 가이드 (5분 완성)
+# 🚀 GitHub Pages 배포 가이드
 
-## 📋 준비물
+## ✅ 준비 완료!
 
-- GitHub 계정
-- Git 설치 (https://git-scm.com/downloads)
-- Node.js 18+ (https://nodejs.org)
+빌드가 완료되었습니다. 이제 GitHub Pages에 배포할 준비가 되었습니다.
 
 ---
 
-## ⚡ 빠른 배포 (5단계)
+## 📦 배포 방법 (3가지)
 
-### 1단계: GitHub 저장소 생성
+### 방법 1: GitHub Actions 자동 배포 (추천) ⭐
 
-1. https://github.com/new 접속
-2. Repository name: `barotube` (또는 원하는 이름)
-3. Public 선택
-4. "Create repository" 클릭
+가장 쉬운 방법! 코드를 push하면 자동으로 배포됩니다.
 
-### 2단계: 로컬에 클론
-
+**1단계: GitHub 저장소 생성**
 ```bash
-# 터미널 또는 명령 프롬프트에서 실행
-git clone https://github.com/YOUR_USERNAME/barotube.git
-cd barotube
+# 로컬에서
+git init
+git add .
+git commit -m "Initial commit: BaroTube"
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/barotube.git
+git push -u origin main
 ```
 
-**중요:** `YOUR_USERNAME`을 실제 GitHub 사용자명으로 변경하세요!
+**2단계: GitHub에서 Pages 활성화**
+1. GitHub 저장소 페이지로 이동
+2. **Settings** → **Pages**
+3. Source에서 **"GitHub Actions"** 선택
+4. 완료! 자동으로 배포됩니다.
 
-### 3단계: 프로젝트 파일 복사
+**3단계: 배포 확인**
+- Actions 탭에서 워크플로우 실행 확인
+- 배포 완료 후 URL: `https://YOUR_USERNAME.github.io/barotube/`
 
-이 환경의 모든 파일을 `barotube` 폴더에 복사합니다.
+---
 
-**또는** Git으로 직접 가져오기:
+### 방법 2: gh-pages 브랜치로 배포 (수동)
+
+**1단계: GitHub 저장소 생성**
 ```bash
-# 이 환경에서 파일을 다운로드 받았다면
-# 압축을 풀고 barotube 폴더에 복사
+git init
+git add .
+git commit -m "Initial commit: BaroTube"
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/barotube.git
+git push -u origin main
 ```
 
-### 4단계: 의존성 설치 및 배포
-
+**2단계: 배포 실행**
 ```bash
-# 1. 의존성 설치
-npm install
-
-# 2. GitHub Pages에 배포 (자동으로 빌드 + gh-pages 브랜치에 푸시)
+# 한 줄로 배포
 npm run deploy:github-pages
 ```
 
-### 5단계: GitHub Pages 활성화
+**3단계: GitHub에서 Pages 활성화**
+1. GitHub 저장소 → **Settings** → **Pages**
+2. Source에서 **"Deploy from a branch"** 선택
+3. Branch: **gh-pages** / **root** 선택
+4. **Save** 클릭
 
-1. GitHub 저장소 페이지로 이동
-2. Settings → Pages
-3. Source:
-   - Branch: `gh-pages`
-   - Folder: `/ (root)`
-4. "Save" 클릭
-
-**완료!** 1-2분 후 다음 URL에서 접속 가능:
-```
-https://YOUR_USERNAME.github.io/barotube/
-```
+**4단계: 배포 확인**
+- URL: `https://YOUR_USERNAME.github.io/barotube/`
+- 배포 완료까지 1-2분 소요
 
 ---
 
-## 🔧 설정 파일 확인
+### 방법 3: GitHub 웹에서 직접 배포
 
-### vite.config.js (base 경로)
+**1단계: GitHub에서 새 저장소 생성**
+1. https://github.com/new 접속
+2. Repository name: `barotube`
+3. Public 선택
+4. **Create repository** 클릭
 
+**2단계: 코드 업로드**
+```bash
+# 로컬에서
+git init
+git add .
+git commit -m "Initial commit: BaroTube"
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/barotube.git
+git push -u origin main
+```
+
+**3단계: GitHub Actions로 배포**
+1. 저장소 → **Actions** 탭
+2. "Deploy to GitHub Pages" 워크플로우 선택
+3. **"Run workflow"** 클릭
+4. 배포 완료!
+
+---
+
+## 🔧 설정 파일 설명
+
+### 이미 설정된 파일들
+
+**1. `.github/workflows/github-pages.yml`**
+- GitHub Actions 자동 배포 워크플로우
+- `main` 브랜치에 push하면 자동 배포
+
+**2. `vite.config.js`**
 ```javascript
-export default defineConfig({
-  // GitHub Pages용 base 경로
-  // 저장소 이름이 'barotube'인 경우:
-  base: '/barotube/',
-  
-  // 사용자 페이지(username.github.io)인 경우:
-  // base: '/',
-  
-  // ...
-});
+base: process.env.GITHUB_PAGES === 'true' ? './' : '/'
 ```
+- GitHub Pages에서 상대 경로 사용
 
-**중요:** 저장소 이름을 변경했다면 `vite.config.js`의 `base` 경로도 수정해야 합니다!
+**3. `public/404.html`**
+- SPA 라우팅 지원
+- GitHub Pages에서 새로고침 시 404 오류 방지
 
-예시:
-- 저장소 이름: `my-youtube-app` → `base: '/my-youtube-app/'`
-- 사용자 페이지: `username.github.io` → `base: '/'`
+**4. `package.json`**
+```json
+"deploy:github-pages": "npm run build && gh-pages -d dist -b gh-pages"
+```
+- 한 줄로 배포 명령어
 
 ---
 
-## 📱 배포 후 PWA 설치
+## 📱 배포 후 설치 방법
 
 배포된 URL에 접속한 후:
 
-### Windows/Mac (Chrome/Edge)
-1. URL 접속: `https://YOUR_USERNAME.github.io/barotube/`
-2. 주소창 오른쪽 "앱 설치" 아이콘 클릭 (📥)
+### Windows/Mac
+1. Chrome 또는 Edge 브라우저로 접속
+2. 주소창 오른쪽 **"앱 설치"** 아이콘 클릭
 3. 설치 완료!
 
-### Android (Chrome)
-1. URL 접속
-2. 메뉴 (⋮) → "앱 설치" 또는 "홈 화면에 추가"
+### Android
+1. Chrome으로 접속
+2. 메뉴 (⋮) → **"앱 설치"** 또는 **"홈 화면에 추가"**
 3. 설치 완료!
 
-### iOS (Safari)
-1. URL 접속 (**Safari 필수**)
-2. 공유 버튼 (📤) → "홈 화면에 추가"
+### iOS
+1. **Safari**로 접속 (필수!)
+2. 공유 버튼 (📤) → **"홈 화면에 추가"**
 3. 설치 완료!
+
+---
+
+## 🎯 배포 후 확인 사항
+
+### 1. 웹사이트 정상 작동 확인
+```bash
+# 배포된 URL 접속
+https://YOUR_USERNAME.github.io/barotube/
+```
+
+### 2. 기능 테스트
+- [ ] 영상 검색
+- [ ] 카테고리 필터
+- [ ] 영상 재생
+- [ ] PWA 설치
+
+### 3. 모바일 테스트
+- [ ] 반응형 레이아웃
+- [ ] 터치 인터페이스
+- [ ] PWA 설치
+
+---
+
+## 🐛 문제 해결
+
+### 1. 페이지가 404 오류 표시
+
+**원인:** GitHub Pages가 아직 배포되지 않음
+
+**해결:**
+```bash
+# 1-2분 기다린 후 새로고침
+# 또는
+# Actions 탭에서 배포 상태 확인
+```
+
+### 2. CSS/JS 파일이 로드되지 않음
+
+**원인:** base 경로 문제
+
+**해결:**
+```bash
+# vite.config.js 확인
+base: './'  # 상대 경로로 설정되어 있어야 함
+
+# 다시 빌드 및 배포
+npm run deploy:github-pages
+```
+
+### 3. gh-pages 브랜치가 생성되지 않음
+
+**원인:** gh-pages 패키지 문제
+
+**해결:**
+```bash
+# gh-pages 재설치
+npm install -D gh-pages
+
+# 다시 배포
+npm run deploy:github-pages
+```
+
+### 4. PWA가 설치되지 않음
+
+**원인:** HTTPS가 아니거나 manifest 문제
+
+**해결:**
+```bash
+# GitHub Pages는 자동으로 HTTPS 제공
+# 1-2분 기다린 후 다시 시도
+# 또는 캐시 삭제 후 새로고침
+```
+
+---
+
+## 📊 배포 URL
+
+배포 후 접근 가능한 URL:
+
+- **메인 페이지:** `https://YOUR_USERNAME.github.io/barotube/`
+- **PWA 매니페스트:** `https://YOUR_USERNAME.github.io/barotube/manifest.webmanifest`
+- **Service Worker:** `https://YOUR_USERNAME.github.io/barotube/sw.js`
 
 ---
 
@@ -113,149 +226,39 @@ export default defineConfig({
 
 코드를 수정한 후:
 
-```bash
-# 1. 변경사항 커밋
-git add .
-git commit -m "Update features"
-
-# 2. GitHub에 푸시
-git push origin main
-
-# 3. GitHub Pages에 재배포
-npm run deploy:github-pages
-```
-
-**자동 배포 설정:**
-GitHub Actions를 사용하면 push 시 자동 배포됩니다.
-
----
-
-## 🐛 문제 해결
-
-### 1. 페이지가 404 오류
-
-**원인:** base 경로가 잘못됨
-
-**해결:**
-```javascript
-// vite.config.js 수정
-base: '/barotube/',  // 저장소 이름과 일치해야 함
-```
-
-다시 빌드:
-```bash
-npm run deploy:github-pages
-```
-
-### 2. CSS/JS가 로드되지 않음
-
-**원인:** 상대 경로 문제
-
-**해결:**
-- `vite.config.js`의 `base` 경로 확인
-- 브라우저 개발자 도구(F12) → Console에서 404 오류 확인
-- 경로가 `/barotube/assets/...` 형식인지 확인
-
-### 3. PWA가 설치되지 않음
-
-**원인:** HTTPS가 아니거나 manifest 오류
-
-**해결:**
-- GitHub Pages는 자동으로 HTTPS 제공
-- 브라우저 캐시 삭제 (Ctrl+Shift+Delete)
-- manifest.webmanifest 파일이 제대로 생성되었는지 확인
-
-### 4. gh-pages 브랜치가 생성되지 않음
-
-**원인:** Git 권한 문제
-
-**해결:**
-```bash
-# GitHub CLI 설치 (https://cli.github.com)
-gh auth login
-
-# 다시 배포 시도
-npm run deploy:github-pages
-```
-
-또는 수동으로 푸시:
-```bash
-npm run build
-npx gh-pages -d dist -b gh-pages
-```
-
----
-
-## 📊 배포 구조
-
-```
-GitHub 저장소
-├── main 브랜치 (소스 코드)
-│   ├── src/
-│   ├── dist/
-│   └── ...
-│
-└── gh-pages 브랜치 (배포 파일)
-    ├── index.html
-    ├── assets/
-    ├── manifest.webmanifest
-    └── sw.js
-```
-
-**GitHub Pages는 `gh-pages` 브랜치의 파일만 제공합니다.**
-
----
-
-## 🎯 배포 후 확인 사항
-
-- [ ] URL 접속 가능: `https://YOUR_USERNAME.github.io/barotube/`
-- [ ] 비디오 피드 로드됨
-- [ ] 검색 기능 작동
-- [ ] 영상 재생 가능
-- [ ] PWA 설치 가능
-- [ ] 모바일에서 정상 동작
-
----
-
-## 💡 팁
-
-### 커스텀 도메인 사용
-
-1. GitHub 저장소 → Settings → Pages → Custom domain
-2. 도메인 입력 (예: `barotube.com`)
-3. DNS 설정:
-   - A 레코드: `185.199.108.153`
-   - CNAME: `YOUR_USERNAME.github.io`
-
 ### 자동 배포 (GitHub Actions)
-
-`.github/workflows/deploy.yml` 파일이 이미 설정되어 있습니다.
-
-`main` 브랜치에 push하면 자동으로 GitHub Pages에 배포됩니다.
-
-### 빌드 최적화
-
 ```bash
-# 빌드 분석
-npm run build
-# → dist 폴더 크기 확인
-
-# Lighthouse로 성능 측정
-# Chrome 개발자 도구 → Lighthouse 탭
+git add .
+git commit -m "Update: 새로운 기능 추가"
+git push origin main
+# → 자동으로 배포됨!
 ```
+
+### 수동 배포
+```bash
+npm run deploy:github-pages
+```
+
+---
+
+## 🎉 배포 완료!
+
+축하합니다! BaroTube가 GitHub Pages에 배포되었습니다.
+
+**다음 단계:**
+1. 친구들에게 URL 공유
+2. 모바일에서 PWA 설치 테스트
+3. 기능 개선 및 버그 수정
+4. GitHub Stars 받기! ⭐
 
 ---
 
 ## 📞 지원
 
 문제 발생 시:
-1. 브라우저 개발자 도구(F12) → Console 확인
-2. GitHub 저장소 → Actions 탭에서 빌드 로그 확인
-3. GitHub Issues에 문제 보고
+- GitHub Issues: https://github.com/YOUR_USERNAME/barotube/issues
+- GitHub Pages 문서: https://docs.github.com/ko/pages
 
 ---
 
-**배포 완료!** 🎉
-
-BaroTube가 GitHub Pages에서 실행 중입니다:
-`https://YOUR_USERNAME.github.io/barotube/`
+**즐거운 BaroTube 사용 되세요!** 🎬

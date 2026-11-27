@@ -5,9 +5,9 @@ import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
   // GitHub Pages 배포를 위한 base 경로
-  // 저장소 이름에 따라 변경: '/barotube/' 또는 '/your-repo-name/'
-  // 사용자 페이지(username.github.io)인 경우 '/' 사용
-  base: process.env.NODE_ENV === 'production' ? '/barotube/' : '/',
+  // 프로젝트 페이지인 경우: '/repository-name/'
+  // 사용자 페이지인 경우: '/'
+  base: process.env.GITHUB_PAGES === 'true' ? './' : '/',
   
   build: {
     // Android 5.0+ (Chrome 63+), iOS 12+, 구형 브라우저 지원
@@ -45,8 +45,8 @@ export default defineConfig({
         background_color: "#0f0f0f",
         display: "standalone",
         orientation: "any",
-        start_url: "/",
-        scope: "/",
+        start_url: "./",
+        scope: "./",
         lang: "ko-KR",
         categories: ["entertainment", "utilities"],
         icons: [

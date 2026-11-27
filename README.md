@@ -16,11 +16,22 @@
 
 ## 📦 설치 방법
 
-### 🌐 웹/PWA (모든 플랫폼)
+### 🌐 웹/PWA (모든 플랫폼) - GitHub Pages
+
+**라이브 데모:** `https://YOUR_USERNAME.github.io/barotube/`
 
 1. 웹 브라우저로 접속
 2. 브라우저의 **"앱 설치"** 또는 **"홈 화면에 추가"** 클릭
 3. 완료!
+
+**GitHub Pages에 배포:**
+```bash
+# 1. GitHub 저장소 생성 후
+git push origin main
+
+# 2. Settings → Pages → GitHub Actions 선택
+# 3. 자동 배포 완료!
+```
 
 **지원 브라우저:**
 - Chrome 63+ (Android 5.0+)
