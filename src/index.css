@@ -46,3 +46,8 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* 브라우저 기본 당겨서 새로고침(페이지 전체 리로드) 대신 앱 자체 새로고침 사용 */
+html, body {
+  overscroll-behavior-y: contain;
+}

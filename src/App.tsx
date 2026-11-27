@@ -14,6 +14,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { usePullToRefresh } from "./usePullToRefresh";
 import {
   getTrending,
   getTrendingByCategory,
@@ -59,8 +60,9 @@ export default function App() {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // 피드 로드
-  const loadFeed = useCallback(async () => {
-    setLoading(true);
+  // silent: 당겨서 새로고침일 때는 기존 목록을 유지한 채 갱신
+  const loadFeed = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError("");
 
     try {
@@ -74,7 +76,7 @@ export default function App() {
 
       setVideos(results);
     } catch (err) {
-      setError("영상을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
+      if (!silent) setError("영상을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
       console.error(err);
     } finally {
       setLoading(false);
@@ -84,6 +86,10 @@ export default function App() {
   useEffect(() => {
     loadFeed();
   }, [loadFeed]);
+
+  // 당겨서 새로고침 (홈 화면에서만)
+  const refreshFeed = useCallback(() => loadFeed(true), [loadFeed]);
+  const { pull, refreshing, threshold } = usePullToRefresh(refreshFeed, tab === "home");
 
   // 검색 실행
   const handleSearch = () => {
@@ -194,6 +200,21 @@ export default function App() {
         </div>
       </div>
 
+      {/* ===== 당겨서 새로고침 표시 ===== */}
+      {(pull > 0 || refreshing) && (
+        <div
+          className="fixed left-0 right-0 z-40 flex justify-center pointer-events-none"
+          style={{ top: 112 + pull - 44 }}
+        >
+          <div className="w-10 h-10 rounded-full bg-[#272727] shadow-lg flex items-center justify-center">
+            <RefreshCw
+              className={`w-5 h-5 ${pull >= threshold || refreshing ? "text-red-500" : "text-white/60"} ${refreshing ? "animate-spin" : ""}`}
+              style={refreshing ? undefined : { transform: `rotate(${pull * 3}deg)` }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* ===== 메인 콘텐츠 ===== */}
       <main className="pt-28 pb-8">
         <AnimatePresence mode="wait">
@@ -237,7 +258,7 @@ export default function App() {
                   <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
                   <p className="text-gray-400 mb-4">{error}</p>
                   <button
-                    onClick={loadFeed}
+                    onClick={() => loadFeed()}
                     className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
                   >
                     <RefreshCw className="w-4 h-4" />
