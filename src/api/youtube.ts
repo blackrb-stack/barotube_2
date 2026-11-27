@@ -1,42 +1,30 @@
-// Piped API - YouTube 데이터를 API 키 없이 가져오는 서비스
-// https://github.com/TeamPiped/Piped
+// YouTube 데이터 API - 다중 소스 지원
+// Invidious, Piped, YouTube RSS 조합
 
+// ==================== Invidious API ====================
+const INVIDIOUS_INSTANCES = [
+  'https://vid.puffyan.us',
+  'https://invidious.snopyta.org',
+  'https://yewtu.be',
+  'https://invidious.kavin.rocks',
+  'https://inv.tux.pizza',
+  'https://invidious.fdn.fr',
+  'https://vt.roshless.me',
+];
+
+// ==================== Piped API ====================
 const PIPED_INSTANCES = [
   'https://pipedapi.kavin.rocks',
   'https://pipedapi.adminforge.de',
   'https://api.piped.projectsegfau.lt',
   'https://pipedapi.in.projectsegfau.lt',
+  'https://pipedapi.leptons.xyz',
 ];
 
-let currentInstance = 0;
+let currentInvidious = 0;
+let currentPiped = 0;
 
-function getInstance() {
-  return PIPED_INSTANCES[currentInstance];
-}
-
-function rotateInstance() {
-  currentInstance = (currentInstance + 1) % PIPED_INSTANCES.length;
-  return PIPED_INSTANCES[currentInstance];
-}
-
-async function fetchWithFallback(path: string) {
-  let lastError: Error | null = null;
-  
-  for (let i = 0; i < PIPED_INSTANCES.length; i++) {
-    try {
-      const instance = PIPED_INSTANCES[(currentInstance + i) % PIPED_INSTANCES.length];
-      const response = await fetch(`${instance}${path}`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return await response.json();
-    } catch (err) {
-      lastError = err as Error;
-      continue;
-    }
-  }
-  
-  throw lastError || new Error('All Piped instances failed');
-}
-
+// ==================== 타입 ====================
 export interface VideoItem {
   url: string;
   title: string;
@@ -57,7 +45,7 @@ export interface Category {
   id: string;
 }
 
-// 카테고리 목록 (YouTube 홈페이지 카테고리)
+// ==================== 카테고리 ====================
 export const CATEGORIES: Category[] = [
   { name: '전체', id: 'all' },
   { name: '음악', id: 'music' },
@@ -69,10 +57,121 @@ export const CATEGORIES: Category[] = [
   { name: '스포츠', id: 'sports' },
 ];
 
+// ==================== API 호출 ====================
+
+// Invidious API 호출
+async function fetchFromInvidious(path: string): Promise<any> {
+  for (let i = 0; i < INVIDIOUS_INSTANCES.length; i++) {
+    try {
+      const instance = INVIDIOUS_INSTANCES[(currentInvidious + i) % INVIDIOUS_INSTANCES.length];
+      const response = await fetch(`${instance}${path}`, {
+        signal: AbortSignal.timeout(5000) // 5초 타임아웃
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      currentInvidious = (currentInvidious + i) % INVIDIOUS_INSTANCES.length;
+      return data;
+    } catch (err) {
+      continue;
+    }
+  }
+  throw new Error('All Invidious instances failed');
+}
+
+// Piped API 호출
+async function fetchFromPiped(path: string): Promise<any> {
+  for (let i = 0; i < PIPED_INSTANCES.length; i++) {
+    try {
+      const instance = PIPED_INSTANCES[(currentPiped + i) % PIPED_INSTANCES.length];
+      const response = await fetch(`${instance}${path}`, {
+        signal: AbortSignal.timeout(5000)
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      currentPiped = (currentPiped + i) % PIPED_INSTANCES.length;
+      return data;
+    } catch (err) {
+      continue;
+    }
+  }
+  throw new Error('All Piped instances failed');
+}
+
+// 다중 소스에서 데이터 가져오기 (fallback)
+async function fetchWithFallback(path: string, transformFn: (data: any, source: string) => VideoItem[]): Promise<VideoItem[]> {
+  // 1. Invidious 시도
+  try {
+    const data = await fetchFromInvidious(path);
+    const results = transformFn(data, 'invidious');
+    if (results.length > 0) return results;
+  } catch (err) {
+    console.log('Invidious failed, trying Piped...');
+  }
+
+  // 2. Piped 시도
+  try {
+    const data = await fetchFromPiped(path);
+    const results = transformFn(data, 'piped');
+    if (results.length > 0) return results;
+  } catch (err) {
+    console.log('Piped failed');
+  }
+
+  throw new Error('All API sources failed');
+}
+
+// ==================== 데이터 변환 ====================
+
+// Invidious 응답 변환
+function transformInvidiousVideo(item: any): VideoItem {
+  return {
+    url: `/watch?v=${item.videoId}`,
+    title: item.title || '',
+    thumbnail: item.videoThumbnails?.[4]?.url || item.videoThumbnails?.[0]?.url || '',
+    uploaderName: item.author || '',
+    uploaderUrl: item.authorId ? `/channel/${item.authorId}` : '',
+    uploaderAvatar: item.authorThumbnails?.[3]?.url || '',
+    uploadedDate: item.publishedText || '',
+    duration: item.lengthSeconds || 0,
+    views: item.viewCount || 0,
+    uploaderVerified: item.authorVerified || false,
+    isShort: item.lengthSeconds < 60,
+    type: item.type || 'video',
+  };
+}
+
+// Piped 응답 변환
+function transformPipedVideo(item: any): VideoItem {
+  const videoId = item.url?.replace('/watch?v=', '') || '';
+  return {
+    url: item.url || '',
+    title: item.title || '',
+    thumbnail: item.thumbnail || '',
+    uploaderName: item.uploaderName || '',
+    uploaderUrl: item.uploaderUrl || '',
+    uploaderAvatar: item.uploaderAvatar || '',
+    uploadedDate: item.uploadedDate || '',
+    duration: item.duration || 0,
+    views: item.views || 0,
+    uploaderVerified: item.uploaderVerified || false,
+    isShort: item.isShort || false,
+    type: item.type || 'stream',
+  };
+}
+
+// ==================== 메인 함수 ====================
+
 // 트렌딩 영상 가져오기
 export async function getTrending(region: string = 'KR'): Promise<VideoItem[]> {
-  const data = await fetchWithFallback(`/trending?region=${region}`);
-  return data.map(normalizeVideo);
+  const path = `/api/v1/trending?region=${region}`;
+  
+  return fetchWithFallback(path, (data, source) => {
+    if (source === 'invidious') {
+      return (data || []).map(transformInvidiousVideo).filter((v: VideoItem) => v.type === 'video');
+    } else {
+      return (data || []).map(transformPipedVideo);
+    }
+  });
 }
 
 // 카테고리별 트렌딩
@@ -97,53 +196,39 @@ export async function getTrendingByCategory(category: string, region: string = '
 
 // 검색
 export async function searchVideos(query: string, region: string = 'KR'): Promise<VideoItem[]> {
-  const data = await fetchWithFallback(`/search?q=${encodeURIComponent(query)}&filter=videos&region=${region}`);
-  return (data.items || data || []).map(normalizeVideo);
-}
-
-// 추천 영상 (홈 피드)
-export async function getHomeFeed(region: string = 'KR'): Promise<VideoItem[]> {
+  // Invidious 검색
+  const invidiousPath = `/api/v1/search?q=${encodeURIComponent(query)}&type=video&region=${region}`;
+  
   try {
-    // Piped는 직접적인 "home feed"가 없으므로 trending + 인기 검색어 조합
-    const trending = await getTrending(region);
-    return trending;
-  } catch {
-    return [];
+    const data = await fetchFromInvidious(invidiousPath);
+    const results = (data || []).map(transformInvidiousVideo).filter((v: VideoItem) => v.type === 'video');
+    if (results.length > 0) return results;
+  } catch (err) {
+    console.log('Invidious search failed, trying Piped...');
   }
-}
 
-// 채널 영상 가져오기
-export async function getChannelVideos(channelId: string): Promise<VideoItem[]> {
-  const data = await fetchWithFallback(`/channels/tabs?data=${channelId}&tab=videos`);
-  return (data.content || []).map(normalizeVideo);
+  // Piped 검색
+  const pipedPath = `/search?q=${encodeURIComponent(query)}&filter=videos&region=${region}`;
+  
+  try {
+    const data = await fetchFromPiped(pipedPath);
+    return (data.items || data || []).map(transformPipedVideo);
+  } catch (err) {
+    throw new Error('Search failed on all sources');
+  }
 }
 
 // 영상 정보 가져오기
 export async function getVideoInfo(videoId: string) {
-  return fetchWithFallback(`/streams/${videoId}`);
+  try {
+    return await fetchFromInvidious(`/api/v1/videos/${videoId}`);
+  } catch {
+    return await fetchFromPiped(`/streams/${videoId}`);
+  }
 }
 
-// 영상 정규화
-function normalizeVideo(item: any): VideoItem {
-  const videoId = item.url?.replace('/watch?v=', '') || '';
-  
-  return {
-    url: item.url || '',
-    title: item.title || '',
-    thumbnail: item.thumbnail || '',
-    uploaderName: item.uploaderName || '',
-    uploaderUrl: item.uploaderUrl || '',
-    uploaderAvatar: item.uploaderAvatar || '',
-    uploadedDate: item.uploadedDate || '',
-    duration: item.duration || 0,
-    views: item.views || 0,
-    uploaderVerified: item.uploaderVerified || false,
-    isShort: item.isShort || false,
-    type: item.type || 'stream',
-  };
-}
+// ==================== 유틸리티 ====================
 
-// 포맷 유틸리티
 export function formatViews(views: number): string {
   if (views >= 100000000) {
     return `${(views / 100000000).toFixed(1)}억`;

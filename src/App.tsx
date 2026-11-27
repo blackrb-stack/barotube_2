@@ -408,11 +408,11 @@ function PlayerView({
         <span>돌아가기</span>
       </button>
 
-      {/* 플레이어 */}
+      {/* 플레이어 - youtube-nocookie.com 사용으로 광고 감소 */}
       <div className="relative w-full rounded-2xl overflow-hidden bg-black shadow-2xl mb-4">
         <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
           <iframe
-            src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3`}
+            src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=1`}
             className="absolute inset-0 w-full h-full"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
