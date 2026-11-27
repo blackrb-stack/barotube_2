@@ -1,10 +1,8 @@
 name: Build and Deploy
 
+# 웹 배포는 github-pages.yml 이 담당합니다.
+# 이 워크플로(Netlify/데스크톱/안드로이드 빌드)는 시크릿·android 폴더가 준비된 뒤 수동 실행하세요.
 on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:

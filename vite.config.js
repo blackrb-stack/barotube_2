@@ -49,13 +49,13 @@ export default defineConfig({
         categories: ["entertainment", "utilities"],
         icons: [
           {
-            src: "/icons/icon.svg",
+            src: "icons/icon.svg",
             sizes: "any",
             type: "image/svg+xml",
             purpose: "any"
           },
           {
-            src: "/icons/icon.svg",
+            src: "icons/icon.svg",
             sizes: "192x192 512x512",
             type: "image/svg+xml",
             purpose: "maskable"
@@ -63,7 +63,7 @@ export default defineConfig({
         ],
         screenshots: [
           {
-            src: "/icons/icon.svg",
+            src: "icons/icon.svg",
             sizes: "512x512",
             type: "image/svg+xml",
             form_factor: "wide",
@@ -79,7 +79,7 @@ export default defineConfig({
         shortcuts: [
           {
             name: "최근 영상 재생",
-            url: "/?action=recent",
+            url: "./?action=recent",
             description: "최근 시청한 영상 재생"
           }
         ]
@@ -87,7 +87,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
         // Android 구버전 호환성
-        navigateFallback: "/index.html",
+        navigateFallback: "index.html",
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
