@@ -14,6 +14,43 @@
 - 🎨 **다크 모드** - 눈이 편안한 다크 UI
 - 📲 **앱 설치** - 홈 화면에 바로가기로 빠른 접근
 
+## ⚡ 즉시 배포 & 설치 (30초!)
+
+### 원클릭 배포
+
+```bash
+# GitHub CLI 설치 후
+npm run deploy:auto  # Mac/Linux
+auto-deploy.bat      # Windows
+```
+
+**이 명령어 하나로:**
+1. ✅ GitHub 저장소 자동 생성
+2. ✅ 코드 자동 업로드
+3. ✅ GitHub Pages 자동 활성화
+4. ✅ 배포 URL 제공
+
+### 배포 후 설치
+
+배포 완료 후 (1-2분):
+
+**Windows/Mac:**
+1. `https://YOUR_USERNAME.github.io/barotube/` 접속
+2. 브라우저 "앱 설치" 아이콘 클릭
+3. 완료!
+
+**Android:**
+1. Chrome으로 접속
+2. 메뉴 → "앱 설치"
+3. 완료!
+
+**iOS:**
+1. Safari로 접속
+2. 공유 → "홈 화면에 추가"
+3. 완료!
+
+---
+
 ## 📦 설치 방법
 
 ### 🌐 웹/PWA (모든 플랫폼) - GitHub Pages
@@ -23,15 +60,6 @@
 1. 웹 브라우저로 접속
 2. 브라우저의 **"앱 설치"** 또는 **"홈 화면에 추가"** 클릭
 3. 완료!
-
-**GitHub Pages에 배포:**
-```bash
-# 1. GitHub 저장소 생성 후
-git push origin main
-
-# 2. Settings → Pages → GitHub Actions 선택
-# 3. 자동 배포 완료!
-```
 
 **지원 브라우저:**
 - Chrome 63+ (Android 5.0+)

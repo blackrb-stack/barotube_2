@@ -24,6 +24,7 @@
     "deploy:netlify": "chmod +x ./scripts/deploy.sh && ./scripts/deploy.sh netlify",
     "deploy:vercel": "chmod +x ./scripts/deploy.sh && ./scripts/deploy.sh vercel",
     "deploy:github-pages": "npm run build && gh-pages -d dist -b gh-pages",
+    "deploy:auto": "chmod +x ./auto-deploy.sh && ./auto-deploy.sh",
     "deploy:all": "chmod +x ./scripts/deploy.sh && ./scripts/deploy.sh all",
     "predeploy": "npm run build"
   },
