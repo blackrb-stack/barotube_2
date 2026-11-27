@@ -1,12 +1,26 @@
 // Piped API - YouTube 데이터를 API 키 없이 가져오는 서비스
 // https://github.com/TeamPiped/Piped
 
+// 2026-11-28 기준, 배포 사이트(github.io)에서 CORS 포함 정상 응답 확인된 서버만 사용
+// (trending / search / streams 모두 확인). 서버가 죽으면 이 목록만 바꾸면 됩니다.
 const PIPED_INSTANCES = [
-  'https://pipedapi.kavin.rocks',
-  'https://pipedapi.adminforge.de',
-  'https://api.piped.projectsegfau.lt',
-  'https://pipedapi.in.projectsegfau.lt',
+  'https://pipedapi.ducks.party',
+  'https://api.piped.private.coffee',
 ];
+
+// 서버 하나가 응답 없이 멈춰도 다음 서버로 넘어가도록 요청당 제한 시간
+const REQUEST_TIMEOUT_MS = 10000;
+
+async function fetchWithTimeout(url: string): Promise<Response> {
+  if (typeof AbortController === 'undefined') return fetch(url);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 let currentInstance = 0;
 
@@ -24,10 +38,12 @@ async function fetchWithFallback(path: string) {
   
   for (let i = 0; i < PIPED_INSTANCES.length; i++) {
     try {
-      const instance = PIPED_INSTANCES[(currentInstance + i) % PIPED_INSTANCES.length];
-      const response = await fetch(`${instance}${path}`);
+      const index = (currentInstance + i) % PIPED_INSTANCES.length;
+      const response = await fetchWithTimeout(`${PIPED_INSTANCES[index]}${path}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return await response.json();
+      const data = await response.json();
+      currentInstance = index; // 성공한 서버를 다음 요청에서 먼저 사용
+      return data;
     } catch (err) {
       lastError = err as Error;
       continue;
