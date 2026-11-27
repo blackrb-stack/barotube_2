@@ -1,0 +1,28 @@
+{
+  "appId": "com.barotube.app",
+  "appName": "BaroTube",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#0f0f0f",
+    "minWebViewVersion": 60
+  },
+  "ios": {
+    "backgroundColor": "#0f0f0f",
+    "scrollEnabled": true,
+    "allowsLinkPreview": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#0f0f0f",
+      "showSpinner": false,
+      "androidSplashResourceName": "splash",
+      "iosSplashResourceName": "splash"
+    }
+  }
+}
