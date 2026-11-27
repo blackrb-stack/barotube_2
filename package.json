@@ -23,8 +23,9 @@
     "deploy:web": "npm run build",
     "deploy:netlify": "chmod +x ./scripts/deploy.sh && ./scripts/deploy.sh netlify",
     "deploy:vercel": "chmod +x ./scripts/deploy.sh && ./scripts/deploy.sh vercel",
-    "deploy:github-pages": "npm run build && gh-pages -d dist",
-    "deploy:all": "chmod +x ./scripts/deploy.sh && ./scripts/deploy.sh all"
+    "deploy:github-pages": "npm run build && gh-pages -d dist -b gh-pages",
+    "deploy:all": "chmod +x ./scripts/deploy.sh && ./scripts/deploy.sh all",
+    "predeploy": "npm run build"
   },
   "dependencies": {
     "@babel/core": "^8.1.3",

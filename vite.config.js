@@ -4,6 +4,11 @@ import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  // GitHub Pages 배포를 위한 base 경로
+  // 저장소 이름에 따라 변경: '/barotube/' 또는 '/your-repo-name/'
+  // 사용자 페이지(username.github.io)인 경우 '/' 사용
+  base: process.env.NODE_ENV === 'production' ? '/barotube/' : '/',
+  
   build: {
     // Android 5.0+ (Chrome 63+), iOS 12+, 구형 브라우저 지원
     target: ['es2015', 'chrome63', 'firefox67', 'safari12', 'edge79'],
