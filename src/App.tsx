@@ -1,6 +1,12 @@
-import { useState, useEffect, useRef } from "react";
-import { Search, Play, Trash2, Clock, ExternalLink, X, Youtube } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Search, Play, Trash2, Clock, ExternalLink, X, Youtube, Download, CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+
+// PWA Install Prompt 타입
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
 
 interface HistoryItem {
   id: string;
@@ -41,6 +47,9 @@ export default function App() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [error, setError] = useState("");
   const [showHistory, setShowHistory] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Load history from localStorage
@@ -59,6 +68,35 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("barotube-history", JSON.stringify(history));
   }, [history]);
+
+  // PWA Install prompt handling
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e as BeforeInstallPromptEvent);
+      setShowInstallBanner(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", handler);
+
+    // Check if already installed
+    if (window.matchMedia("(display-mode: standalone)").matches) {
+      setIsInstalled(true);
+    }
+
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handleInstall = useCallback(async () => {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    const choice = await installPrompt.userChoice;
+    if (choice.outcome === "accepted") {
+      setIsInstalled(true);
+    }
+    setInstallPrompt(null);
+    setShowInstallBanner(false);
+  }, [installPrompt]);
 
   const playVideo = (videoId: string, title?: string) => {
     setCurrentVideoId(videoId);
@@ -129,18 +167,39 @@ export default function App() {
             <span className="text-xs text-gray-500 hidden sm:inline">광고 없이 영상 시청</span>
           </div>
 
-          <button
-            onClick={() => setShowHistory(!showHistory)}
-            className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-white/10 transition-colors"
-          >
-            <Clock className="w-5 h-5" />
-            <span className="hidden sm:inline text-sm">기록</span>
-            {history.length > 0 && (
-              <span className="bg-red-600 text-xs px-1.5 py-0.5 rounded-full">
-                {history.length}
-              </span>
+          <div className="flex items-center gap-2">
+            {/* Install Button */}
+            {!isInstalled && showInstallBanner && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                onClick={handleInstall}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-red-600 hover:bg-red-700 transition-colors text-sm font-medium"
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">설치</span>
+              </motion.button>
             )}
-          </button>
+            {isInstalled && (
+              <div className="flex items-center gap-1 px-3 py-2 text-green-400 text-sm">
+                <CheckCircle className="w-4 h-4" />
+                <span className="hidden sm:inline">설치됨</span>
+              </div>
+            )}
+
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-white/10 transition-colors"
+            >
+              <Clock className="w-5 h-5" />
+              <span className="hidden sm:inline text-sm">기록</span>
+              {history.length > 0 && (
+                <span className="bg-red-600 text-xs px-1.5 py-0.5 rounded-full">
+                  {history.length}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -413,6 +472,50 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {/* Install Banner */}
+      <AnimatePresence>
+        {!isInstalled && showInstallBanner && !currentVideoId && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-96 bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 shadow-2xl z-50"
+          >
+            <div className="flex items-start gap-3">
+              <div className="bg-red-600 rounded-lg p-2 shrink-0">
+                <Play className="w-5 h-5 fill-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-sm">BaroTube 설치하기</h4>
+                <p className="text-xs text-gray-400 mt-1">
+                  앱으로 설치하면 더 빠르게 이용할 수 있어요. 홈 화면에 바로 접근할 수 있습니다.
+                </p>
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={handleInstall}
+                    className="px-4 py-1.5 bg-red-600 hover:bg-red-700 rounded-full text-xs font-medium transition-colors"
+                  >
+                    설치하기
+                  </button>
+                  <button
+                    onClick={() => setShowInstallBanner(false)}
+                    className="px-4 py-1.5 bg-white/5 hover:bg-white/10 rounded-full text-xs text-gray-400 transition-colors"
+                  >
+                    나중에
+                  </button>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowInstallBanner(false)}
+                className="text-gray-500 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Footer */}
       <footer className="border-t border-white/5 mt-16">
