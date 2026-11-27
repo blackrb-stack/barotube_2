@@ -5,9 +5,7 @@ import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
   // GitHub Pages 배포를 위한 base 경로
-  // 프로젝트 페이지인 경우: '/repository-name/'
-  // 사용자 페이지인 경우: '/'
-  base: process.env.GITHUB_PAGES === 'true' ? './' : '/',
+  base: './',
   
   build: {
     // Android 5.0+ (Chrome 63+), iOS 12+, 구형 브라우저 지원
